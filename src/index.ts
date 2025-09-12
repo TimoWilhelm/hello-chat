@@ -1,36 +1,49 @@
-import { Actor, ActorConfiguration, handler } from '@cloudflare/actors';
+import { DurableObject } from 'cloudflare:workers';
 
-export class Chat extends Actor<Env> {
-	static configuration: (request: Request) => ActorConfiguration = (request) => {
-		return {
-			sockets: {
-				upgradePath: '/ws',
-				autoResponse: {
-					ping: 'pong',
-					pong: 'ping',
-				},
-			},
-		};
-	};
-
-	protected shouldUpgradeSocket(request: Request): boolean {
-		return true;
-	}
-
-	protected onSocketConnect(ws: WebSocket, request: Request) {
+export class Chat extends DurableObject<Env> {
+	async fetch(request: Request) {
 		const url = new URL(request.url);
-		console.log('Socket connected', url.searchParams.get('name'));
+		if (url.pathname === '/ws' && request.headers.get('Upgrade') === 'websocket') {
+			const pair = new WebSocketPair();
+			this.ctx.acceptWebSocket(pair[0]);
+			const name = url.searchParams.get('name') ?? 'Anonymous';
+			pair[0].serializeAttachment({ name });
+
+			this.broadcast({ message: 'Connected', name }, pair[0]);
+
+			return new Response(null, { status: 101, webSocket: pair[1] });
+		}
+
+		return new Response('Not Found', { status: 404 });
 	}
 
-	protected onSocketDisconnect(ws: WebSocket) {
-		console.log('Socket disconnected');
+	webSocketMessage(ws: WebSocket, data: string) {
+		const { message } = JSON.parse(data);
+		const { name } = ws.deserializeAttachment();
+		this.broadcast({ message, name }, ws);
 	}
 
-	protected onSocketMessage(ws: WebSocket, data: any) {
-		const parsed = JSON.parse(data);
-		const name = ws.deserializeAttachment().queryParams.name;
-		this.sockets.message(JSON.stringify({ name, ...parsed }), '*', [ws]);
+	webSocketClose(ws: WebSocket, code: number, reason: string, wasClean: boolean): void | Promise<void> {
+		this.broadcast({ message: 'Disconnected', name: ws.deserializeAttachment().name }, ws);
+	}
+
+	webSocketError(ws: WebSocket, error: unknown): void | Promise<void> {
+		console.error('WebSocket error:', error);
+	}
+
+	private broadcast(data: { message: string; name: string }, self: WebSocket) {
+		for (const ws of this.ctx.getWebSockets()) {
+			if (ws === self) continue;
+			ws.send(JSON.stringify(data));
+		}
 	}
 }
 
-export default handler(Chat);
+export default {
+	async fetch(request: Request, env: Env, ctx: ExecutionContext) {
+		const url = new URL(request.url);
+		const room = url.searchParams.get('room');
+		const chat = env.Chat.getByName(room ?? 'default');
+		return chat.fetch(request);
+	},
+};

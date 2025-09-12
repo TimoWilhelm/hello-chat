@@ -1,116 +1,121 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Actor Sockets Demo</title>
-    <style>
-        #messageContainer {
-            border: 1px solid #ccc;
-            padding: 10px;
-            margin: 10px 0;
-            height: 200px;
-            overflow-y: auto;
-        }
-        #sessionInfo {
-            background: #f0f0f0;
-            padding: 5px 10px;
-            border-radius: 4px;
-            margin: 10px 0;
-            font-family: monospace;
-        }
-    </style>
-</head>
-<body>
-    <h1>Actor Sockets Demo</h1>
-    <div id="connectionStatus">Status: Disconnected</div>
-    <div id="messageContainer"></div>
+	<head>
+		<meta charset="UTF-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+		<title>Chat Demo</title>
+		<style>
+			#messageContainer {
+				border: 1px solid #ccc;
+				padding: 10px;
+				margin: 10px 0;
+				height: 200px;
+				overflow-y: auto;
+			}
+			#sessionInfo {
+				background: #f0f0f0;
+				padding: 5px 10px;
+				border-radius: 4px;
+				margin: 10px 0;
+				font-family: monospace;
+			}
+		</style>
+	</head>
+	<body>
+		<h1>Actor Sockets Demo</h1>
+		<div id="connectionStatus">Status: Disconnected</div>
+		<div id="messageContainer"></div>
 
-    <input type="text" id="messageInput" placeholder="Type your message">
-    <button onclick="sendMessage()">Send Message</button>
-    <button onclick="disconnect()">Disconnect</button>
+		<form onsubmit="sendMessage(event)" action="">
+			<input type="text" id="messageInput" placeholder="Type your message" />
+			<button type="submit">Send Message</button>
+			<button type="button" onclick="disconnect()">Disconnect</button>
+		</form>
 
-    <script>
-        let ws;
-        const messageContainer = document.getElementById('messageContainer');
-        const statusElement = document.getElementById('connectionStatus');
+		<script>
+			const url = new URL(window.location.href);
+			let room = url.searchParams.get('room');
+			console.log(room);
 
-        // Replace with your deployed Worker URL below:
-        const wsUrl = location.origin.replace(/^http/, 'ws') + '/ws';
+			if (!room) {
+				room = generateRandomId();
+				url.searchParams.set('room', room);
+				history.replaceState(null, '', url.href);
+			}
 
-        function getUrlParameter(name) {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get(name);
-        }
+			let username = prompt('Enter your username:');
+			if (!username || username.trim() === '') {
+				username = "Anonymous";
+			}
 
-        function generateRandomId() {
-            return Math.random().toString(36).substring(2, 15);
-        }
+			let ws;
+			const messageContainer = document.getElementById('messageContainer');
+			const statusElement = document.getElementById('connectionStatus');
 
-        function connect() {
-            const sessionId = getUrlParameter('id') || generateRandomId();
-            const hasClientId = getUrlParameter('id') !== null;
+			const wsUrl = location.origin.replace(/^http/, 'ws') + '/ws';
 
-            if (ws) {
-                ws.close();
-            }
+			function generateRandomId() {
+				return Math.random().toString(36).substring(2, 15);
+			}
 
-            ws = new WebSocket(`${wsUrl}?id=${encodeURIComponent(sessionId)}&name=John%20Doe`);
+			function connect() {
+				ws = new WebSocket(`${wsUrl}?name=${username}&room=${room}`);
 
-            ws.onopen = () => {
-                statusElement.textContent = 'Status: Connected';
-                addMessage('System', `Connected to server`);
-            };
+				ws.onopen = () => {
+					statusElement.textContent = 'Status: Connected';
+					addMessage('System', `Connected to room ${room} as ${username}`);
+				};
 
-            ws.onmessage = (event) => {
-				console.log(event.data)
-				const parsed = JSON.parse(event.data);
-				console.log(parsed);
-                addMessage('Received', `${parsed.name} ${parsed.message}`);
-            };
+				ws.onmessage = (event) => {
+					console.log(event.data);
+					const parsed = JSON.parse(event.data);
+					addMessage(parsed.name, parsed.message);
+				};
 
-            ws.onerror = (error) => {
-                console.error('WebSocket error:', error);
-                addMessage('Error', 'Connection error occurred');
-            };
+				ws.onerror = (error) => {
+					console.error('WebSocket error:', error);
+					addMessage('Error', 'Connection error occurred');
+				};
 
-            ws.onclose = () => {
-                statusElement.textContent = 'Status: Disconnected';
-                addMessage('System', 'Disconnected from server');
-            };
-        }
+				ws.onclose = () => {
+					statusElement.textContent = 'Status: Disconnected';
+					addMessage('System', 'Disconnected');
+				};
+			}
 
-        function sendMessage() {
-            const messageInput = document.getElementById('messageInput');
-            const message = messageInput.value.trim();
+			function sendMessage(evt) {
+				evt.preventDefault();
 
-            if (message && ws && ws.readyState === WebSocket.OPEN) {
-                const payload = JSON.stringify({
-                    message: message
-                });
-                ws.send(payload);
-                addMessage('Sent', message);
-                messageInput.value = '';
-            }
-        }
+				const messageInput = document.getElementById('messageInput');
+				const message = messageInput.value.trim();
 
-        function disconnect() {
-            if (ws && ws.readyState === WebSocket.OPEN) {
-                ws.close();
-                statusElement.textContent = 'Status: Disconnected';
-                addMessage('System', 'Manually disconnected from server');
-            }
-        }
+				if (message && ws && ws.readyState === WebSocket.OPEN) {
+					const payload = JSON.stringify({
+						message: message,
+					});
+					ws.send(payload);
+					addMessage(username, message);
+					messageInput.value = '';
+				}
+			}
 
-        function addMessage(source, message) {
-            const messageElement = document.createElement('div');
-            messageElement.textContent = `${source}: ${message}`;
-            messageContainer.appendChild(messageElement);
-            messageContainer.scrollTop = messageContainer.scrollHeight;
-        }
+			function disconnect() {
+				if (ws && ws.readyState === WebSocket.OPEN) {
+					ws.close();
+					statusElement.textContent = 'Status: Disconnected';
+					addMessage('System', 'Manually disconnected from server');
+				}
+			}
 
-        // Connect when the page loads
-        connect();
-    </script>
-</body>
+			function addMessage(source, message) {
+				const messageElement = document.createElement('div');
+				messageElement.textContent = `${source}: ${message}`;
+				messageContainer.appendChild(messageElement);
+				messageContainer.scrollTop = messageContainer.scrollHeight;
+			}
+
+			// Connect when the page loads
+			connect();
+		</script>
+	</body>
 </html>
