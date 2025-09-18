@@ -11,6 +11,12 @@ export class Chat extends DurableObject<Env> {
 
 			this.broadcast({ message: 'Connected', name }, pair[0]);
 
+			// send messages back to the client
+			for await (const [_, value] of this.ctx.storage.kv.list({ prefix: '' })) {
+				const { message, name } = value as { message: string; name: string };
+				pair[0].send(JSON.stringify({ message, name }));
+			}
+
 			return new Response(null, { status: 101, webSocket: pair[1] });
 		}
 
@@ -20,6 +26,7 @@ export class Chat extends DurableObject<Env> {
 	webSocketMessage(ws: WebSocket, data: string) {
 		const { message } = JSON.parse(data);
 		const { name } = ws.deserializeAttachment();
+		this.ctx.storage.kv.put(Date.now().toString(), { message, name });
 		this.broadcast({ message, name }, ws);
 	}
 

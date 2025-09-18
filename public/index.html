@@ -35,7 +35,6 @@
 		<script>
 			const url = new URL(window.location.href);
 			let room = url.searchParams.get('room');
-			console.log(room);
 
 			if (!room) {
 				room = generateRandomId();
