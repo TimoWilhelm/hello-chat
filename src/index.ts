@@ -61,7 +61,7 @@ export class Chat extends DurableObject<Env> {
 			};
 
 			// Store message in Durable Object storage
-			await this.ctx.storage.put(`msg_${chatMessage.timestamp}`, chatMessage);
+			this.ctx.storage.kv.put(`msg_${chatMessage.timestamp}`, chatMessage);
 
 			// Broadcast to all OTHER connected clients (not sender)
 			this.broadcast(chatMessage, ws);
@@ -90,12 +90,12 @@ export class Chat extends DurableObject<Env> {
 	// Send chat history to a newly connected user
 	private async sendChatHistory(ws: WebSocket) {
 		// Get all stored messages (simplified from complex async iteration)
-		const messages = await this.ctx.storage.list({ prefix: 'msg_' });
+		const messages = this.ctx.storage.kv.list({ prefix: 'msg_' });
 
 		// Send each message to the new user
 		for (const [_, messageData] of messages) {
 			const message = messageData as ChatMessage;
-			ws.send(JSON.stringify({ message: message.message, name: message.name }));
+			ws.send(JSON.stringify({ message: message.message, name: message.name, timestamp: message.timestamp }));
 		}
 	}
 
@@ -108,7 +108,7 @@ export class Chat extends DurableObject<Env> {
 
 			// Send message to other clients
 			try {
-				ws.send(JSON.stringify({ message: data.message, name: data.name }));
+				ws.send(JSON.stringify({ message: data.message, name: data.name, timestamp: data.timestamp }));
 			} catch (error) {
 				console.error('Error broadcasting to client:', error);
 			}

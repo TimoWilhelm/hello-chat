@@ -1,6 +1,16 @@
-# Cloudflare Durable Objects Chat Workshop
+# Distributed State at the Edge with Cloudflare Durable Objects
 
-Welcome to the Cloudflare Durable Objects Chat Workshop! In this hands-on session, you'll build a real-time chat application using Cloudflare Workers and Durable Objects.
+Create AI agents, collaborative applications, real-time interactions like chat, and multiplayer games without needing to coordinate state, have separate storage, or manage infrastructure
+
+## Workshop Overview
+
+	We'll kick off with a brief overview of the Cloudflare Developer Platform and Durable Objects, then dive into a hands-on session to build a real-time distributed chat application that runs globally on Cloudflare.
+
+	**What to bring:** Your laptop with your favorite code editor, a free Cloudflare account (can be created for free at https://dash.cloudflare.com/sign-up), and some JavaScript or TypeScript experience would be a plus.
+
+---
+
+Welcome to the Cloudflare Durable Objects Workshop! In this hands-on session, you'll build real-time applications using Cloudflare Workers and Durable Objects.
 
 ## 🎯 Learning Objectives
 

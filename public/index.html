@@ -46,12 +46,12 @@
 
 		<!-- Workshop Step 3: Message Input Form -->
 		<form onsubmit="sendMessage(event)" action="">
-			<input 
-				type="text" 
-				id="messageInput" 
-				placeholder="Type your message (max 200 chars)" 
+			<input
+				type="text"
+				id="messageInput"
+				placeholder="Type your message (max 200 chars)"
 				maxlength="200"
-				required 
+				required
 			/>
 			<button type="submit" id="sendButton">Send Message</button>
 			<button type="button" onclick="disconnect()">Disconnect</button>
@@ -83,7 +83,7 @@
 				}
 				username = username.trim();
 			} while (username.length < 3 || username.length > 20);
-			
+
 			if (!username) {
 				username = "Anonymous";
 			}
@@ -121,9 +121,9 @@
 				ws.onmessage = (event) => {
 					try {
 						console.log('Received:', event.data);
-						const parsed = JSON.parse(event.data);
-						// Display message from other users
-						addMessage(parsed.name, parsed.message);
+						const { name, message, timestamp } = JSON.parse(event.data);
+						// Display message from other users with server timestamp
+						addMessage(name, message, timestamp);
 					} catch (error) {
 						console.error('Error parsing message:', error);
 						addMessage('Error', 'Received invalid message');
@@ -143,7 +143,7 @@
 					statusElement.style.color = 'red';
 					sendButton.disabled = true;
 					addMessage('System', `Disconnected (Code: ${event.code})`);
-					
+
 					// Auto-reconnect after 3 seconds if not intentional
 					if (event.code !== 1000) {
 						setTimeout(() => {
@@ -184,10 +184,10 @@
 						message: message,
 					});
 					ws.send(payload);
-					
-					// Show message in UI (sender's copy)
+
+					// Show message in UI (sender's copy) - use client timestamp for immediate feedback
 					addMessage(username + ' (you)', message);
-					
+
 					// Clear input field
 					messageInput.value = '';
 				} catch (error) {
@@ -211,26 +211,28 @@
 			}
 
 			// ========== Workshop Step 8: Message Display Function ==========
-			function addMessage(source, message) {
+			function addMessage(source, message, serverTimestamp = null) {
 				// Create message element
 				const messageElement = document.createElement('div');
-				
-				// Add timestamp for better user experience
-				const timestamp = new Date().toLocaleTimeString();
+
+				// Use server timestamp if available, otherwise use client timestamp
+				const timestamp = serverTimestamp
+					? new Date(serverTimestamp).toLocaleTimeString()
+					: new Date().toLocaleTimeString();
 				messageElement.textContent = `[${timestamp}] ${source}: ${message}`;
-				
+
 				// Style system messages differently
 				if (source === 'System' || source === 'Error') {
 					messageElement.style.fontStyle = 'italic';
 					messageElement.style.color = source === 'Error' ? '#dc3545' : '#6c757d';
 				}
-				
+
 				// Add to message container
 				messageContainer.appendChild(messageElement);
-				
+
 				// Auto-scroll to bottom
 				messageContainer.scrollTop = messageContainer.scrollHeight;
-				
+
 				// Limit message history to prevent memory issues
 				if (messageContainer.children.length > 100) {
 					messageContainer.removeChild(messageContainer.firstChild);
