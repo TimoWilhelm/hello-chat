@@ -19,101 +19,227 @@
 				margin: 10px 0;
 				font-family: monospace;
 			}
+			/* Workshop styling improvements */
+			#sendButton:disabled {
+				background-color: #ccc;
+				cursor: not-allowed;
+			}
+			form {
+				display: flex;
+				gap: 10px;
+				align-items: center;
+			}
+			#messageInput {
+				flex: 1;
+				padding: 8px;
+				border: 1px solid #ccc;
+				border-radius: 4px;
+			}
 		</style>
 	</head>
 	<body>
-		<h1>Actor Sockets Demo</h1>
+		<h1>Cloudflare Durable Objects Chat</h1>
+		<!-- Workshop Step 1: Connection Status Display -->
 		<div id="connectionStatus">Status: Disconnected</div>
+		<!-- Workshop Step 2: Message Display Area -->
 		<div id="messageContainer"></div>
 
+		<!-- Workshop Step 3: Message Input Form -->
 		<form onsubmit="sendMessage(event)" action="">
-			<input type="text" id="messageInput" placeholder="Type your message" />
-			<button type="submit">Send Message</button>
+			<input 
+				type="text" 
+				id="messageInput" 
+				placeholder="Type your message (max 200 chars)" 
+				maxlength="200"
+				required 
+			/>
+			<button type="submit" id="sendButton">Send Message</button>
 			<button type="button" onclick="disconnect()">Disconnect</button>
 		</form>
 
 		<script>
+			// ========== Workshop Step 1: Room Setup ==========
+			// Get current URL to check for room parameter
 			const url = new URL(window.location.href);
 			let room = url.searchParams.get('room');
 
+			// If no room specified, create a random room ID
 			if (!room) {
 				room = generateRandomId();
 				url.searchParams.set('room', room);
+				// Update URL without page reload
 				history.replaceState(null, '', url.href);
 			}
 
-			let username = prompt('Enter your username:');
-			if (!username || username.trim() === '') {
+			// ========== Workshop Step 2: User Setup ==========
+			// Get username with validation
+			let username;
+			do {
+				username = prompt('Enter your username (3-20 characters):');
+				if (username === null) {
+					// User cancelled, use default
+					username = "Anonymous";
+					break;
+				}
+				username = username.trim();
+			} while (username.length < 3 || username.length > 20);
+			
+			if (!username) {
 				username = "Anonymous";
 			}
 
-			let ws;
+			// ========== Workshop Step 3: WebSocket Setup ==========
+			let ws; // WebSocket connection object
 			const messageContainer = document.getElementById('messageContainer');
 			const statusElement = document.getElementById('connectionStatus');
+			const sendButton = document.getElementById('sendButton');
 
+			// Convert HTTP URL to WebSocket URL (http -> ws, https -> wss)
 			const wsUrl = location.origin.replace(/^http/, 'ws') + '/ws';
 
+			// ========== Workshop Step 4: Utility Functions ==========
 			function generateRandomId() {
+				// Generate random room ID using base36 encoding
 				return Math.random().toString(36).substring(2, 15);
 			}
 
+			// ========== Workshop Step 5: WebSocket Connection ==========
 			function connect() {
-				ws = new WebSocket(`${wsUrl}?name=${username}&room=${room}`);
+				// Create WebSocket connection with room and username parameters
+				const connectionUrl = `${wsUrl}?name=${encodeURIComponent(username)}&room=${encodeURIComponent(room)}`;
+				ws = new WebSocket(connectionUrl);
 
+				// Handle successful connection
 				ws.onopen = () => {
 					statusElement.textContent = 'Status: Connected';
+					statusElement.style.color = 'green';
+					sendButton.disabled = false;
 					addMessage('System', `Connected to room ${room} as ${username}`);
 				};
 
+				// Handle incoming messages from server
 				ws.onmessage = (event) => {
-					console.log(event.data);
-					const parsed = JSON.parse(event.data);
-					addMessage(parsed.name, parsed.message);
+					try {
+						console.log('Received:', event.data);
+						const parsed = JSON.parse(event.data);
+						// Display message from other users
+						addMessage(parsed.name, parsed.message);
+					} catch (error) {
+						console.error('Error parsing message:', error);
+						addMessage('Error', 'Received invalid message');
+					}
 				};
 
+				// Handle connection errors
 				ws.onerror = (error) => {
 					console.error('WebSocket error:', error);
 					addMessage('Error', 'Connection error occurred');
+					statusElement.style.color = 'red';
 				};
 
-				ws.onclose = () => {
+				// Handle connection close
+				ws.onclose = (event) => {
 					statusElement.textContent = 'Status: Disconnected';
-					addMessage('System', 'Disconnected');
+					statusElement.style.color = 'red';
+					sendButton.disabled = true;
+					addMessage('System', `Disconnected (Code: ${event.code})`);
+					
+					// Auto-reconnect after 3 seconds if not intentional
+					if (event.code !== 1000) {
+						setTimeout(() => {
+							addMessage('System', 'Attempting to reconnect...');
+							connect();
+						}, 3000);
+					}
 				};
 			}
 
+			// ========== Workshop Step 6: Send Message Function ==========
 			function sendMessage(evt) {
-				evt.preventDefault();
+				evt.preventDefault(); // Prevent form submission
 
 				const messageInput = document.getElementById('messageInput');
 				const message = messageInput.value.trim();
 
-				if (message && ws && ws.readyState === WebSocket.OPEN) {
+				// Validate message before sending
+				if (!message) {
+					addMessage('Error', 'Please enter a message');
+					return;
+				}
+
+				if (message.length > 200) {
+					addMessage('Error', 'Message too long (max 200 characters)');
+					return;
+				}
+
+				// Check WebSocket connection
+				if (!ws || ws.readyState !== WebSocket.OPEN) {
+					addMessage('Error', 'Not connected. Please wait for connection.');
+					return;
+				}
+
+				try {
+					// Send message to Durable Object
 					const payload = JSON.stringify({
 						message: message,
 					});
 					ws.send(payload);
-					addMessage(username, message);
+					
+					// Show message in UI (sender's copy)
+					addMessage(username + ' (you)', message);
+					
+					// Clear input field
 					messageInput.value = '';
+				} catch (error) {
+					console.error('Error sending message:', error);
+					addMessage('Error', 'Failed to send message');
 				}
 			}
 
+			// ========== Workshop Step 7: Disconnect Function ==========
 			function disconnect() {
 				if (ws && ws.readyState === WebSocket.OPEN) {
-					ws.close();
+					// Close WebSocket with normal closure code
+					ws.close(1000, 'User initiated disconnect');
 					statusElement.textContent = 'Status: Disconnected';
+					statusElement.style.color = 'red';
+					sendButton.disabled = true;
 					addMessage('System', 'Manually disconnected from server');
+				} else {
+					addMessage('System', 'Already disconnected');
 				}
 			}
 
+			// ========== Workshop Step 8: Message Display Function ==========
 			function addMessage(source, message) {
+				// Create message element
 				const messageElement = document.createElement('div');
-				messageElement.textContent = `${source}: ${message}`;
+				
+				// Add timestamp for better user experience
+				const timestamp = new Date().toLocaleTimeString();
+				messageElement.textContent = `[${timestamp}] ${source}: ${message}`;
+				
+				// Style system messages differently
+				if (source === 'System' || source === 'Error') {
+					messageElement.style.fontStyle = 'italic';
+					messageElement.style.color = source === 'Error' ? '#dc3545' : '#6c757d';
+				}
+				
+				// Add to message container
 				messageContainer.appendChild(messageElement);
+				
+				// Auto-scroll to bottom
 				messageContainer.scrollTop = messageContainer.scrollHeight;
+				
+				// Limit message history to prevent memory issues
+				if (messageContainer.children.length > 100) {
+					messageContainer.removeChild(messageContainer.firstChild);
+				}
 			}
 
-			// Connect when the page loads
+			// ========== Workshop Step 9: Initialize Connection ==========
+			// Start connection when page loads
+			sendButton.disabled = true; // Disable until connected
 			connect();
 		</script>
 	</body>
