@@ -93,7 +93,7 @@ Our chat application consists of:
 
 Let's explore the key files:
 
-```
+```ascii
 hello-chat/
 ├── src/
 │   └── index.ts          # Durable Object and Worker code
@@ -107,17 +107,17 @@ hello-chat/
 
 ```jsonc
 {
-	"durable_objects": {
-		"bindings": [
-			{
-				"name": "Chat", // Binding name in Worker
-				"class_name": "Chat" // Durable Object class
-			}
-		]
-	},
-	"assets": {
-		"directory": "./public/" // Static files served
-	}
+ "durable_objects": {
+  "bindings": [
+   {
+    "name": "Chat", // Binding name in Worker
+    "class_name": "Chat" // Durable Object class
+   }
+  ]
+ },
+ "assets": {
+  "directory": "./public/" // Static files served
+ }
 }
 ```
 
@@ -163,15 +163,15 @@ export class Chat extends DurableObject<Env> {
 
 ```typescript
 export default {
-	async fetch(request: Request, env: Env, ctx: ExecutionContext) {
-		const room = url.searchParams.get('room') || 'default';
+ async fetch(request: Request, env: Env, ctx: ExecutionContext) {
+  const room = url.searchParams.get('room') || 'default';
 
-		// Get Durable Object instance for this room
-		const chatRoom = env.Chat.idFromName(room);
-		const chat = env.Chat.get(chatRoom);
+  // Get Durable Object instance for this room
+  const chatRoom = env.Chat.idFromName(room);
+  const chat = env.Chat.get(chatRoom);
 
-		return chat.fetch(request);
-	},
+  return chat.fetch(request);
+ },
 };
 ```
 
@@ -208,9 +208,9 @@ ws = new WebSocket(connectionUrl);
 ```javascript
 // Auto-generate room ID if not specified
 if (!room) {
-	room = generateRandomId();
-	url.searchParams.set('room', room);
-	history.replaceState(null, '', url.href);
+ room = generateRandomId();
+ url.searchParams.set('room', room);
+ history.replaceState(null, '', url.href);
 }
 ```
 
@@ -251,10 +251,10 @@ In `src/index.ts`, modify the message storage:
 
 ```typescript
 const chatMessage: ChatMessage = {
-	message: message.trim(),
-	name,
-	timestamp: Date.now(),
-	serverTime: new Date().toISOString(), // Add this
+ message: message.trim(),
+ name,
+ timestamp: Date.now(),
+ serverTime: new Date().toISOString(), // Add this
 };
 ```
 
@@ -288,7 +288,7 @@ Add basic rate limiting to prevent spam:
 const lastMessage = await this.ctx.storage.get(`lastMsg_${name}`);
 const now = Date.now();
 if (lastMessage && now - lastMessage < 1000) {
-	return; // Rate limited
+ return; // Rate limited
 }
 await this.ctx.storage.put(`lastMsg_${name}`, now);
 ```
