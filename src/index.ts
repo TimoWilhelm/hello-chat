@@ -14,26 +14,9 @@ export class Chat extends DurableObject<Env> {
 
 		// Check if this is a WebSocket upgrade request
 		if (url.pathname === '/ws' && request.headers.get('Upgrade') === 'websocket') {
-			// Create WebSocket pair - one for Durable Object, one for client
-			const pair = new WebSocketPair();
-
-			// Accept the WebSocket connection in the Durable Object
-			this.ctx.acceptWebSocket(pair[0]);
-
 			// Get username from URL parameters with validation
 			const name = url.searchParams.get('name')?.trim() || 'Anonymous';
-
-			// Store user info with WebSocket for later retrieval
-			pair[0].serializeAttachment({ name });
-
-			// Notify other users that someone joined
-			this.broadcast({ message: 'Connected', name }, pair[0]);
-
-			// Send chat history to new user (simplified approach)
-			await this.sendChatHistory(pair[0]);
-
-			// Return the other end of WebSocket pair to client
-			return new Response(null, { status: 101, webSocket: pair[1] });
+			return this.handleWebSocketUpgrade(request, name);
 		}
 
 		return new Response('Not Found', { status: 404 });
@@ -57,7 +40,7 @@ export class Chat extends DurableObject<Env> {
 			const chatMessage: ChatMessage = {
 				message: message.trim(),
 				name,
-				timestamp: Date.now()
+				timestamp: Date.now(),
 			};
 
 			// Store message in Durable Object storage
@@ -85,6 +68,26 @@ export class Chat extends DurableObject<Env> {
 	webSocketError(ws: WebSocket, error: unknown): void | Promise<void> {
 		console.error('WebSocket error:', error);
 		// Could add additional error handling/logging here
+	}
+
+	private async handleWebSocketUpgrade(request: Request, name: string) {
+		// Create WebSocket pair
+		const pair = new WebSocketPair();
+
+		// Accept the WebSocket in the Durable Object
+		this.ctx.acceptWebSocket(pair[0]);
+
+		// Store user info with WebSocket
+		pair[0].serializeAttachment({ name });
+
+		// Notify others that someone joined
+		this.broadcast({ message: 'joined the chat', name }, pair[0]);
+
+		// Send chat history to new user
+		await this.sendChatHistory(pair[0]);
+
+		// Return the other end to client
+		return new Response(null, { status: 101, webSocket: pair[1] });
 	}
 
 	// Send chat history to a newly connected user
