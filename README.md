@@ -1,75 +1,10 @@
 # Distributed State at the Edge with Cloudflare Durable Objects
 
-Create AI agents, collaborative applications, real-time interactions like chat, and multiplayer games without needing to coordinate state, have separate storage, or manage infrastructure
-
-## Workshop Overview
-
-We'll kick off with a brief overview of the Cloudflare Developer Platform and Durable Objects, then dive into a hands-on session to build a real-time distributed chat application that runs globally on Cloudflare.
-
-**What to bring:** Your laptop with your favorite code editor, a free Cloudflare account (can be created for free at <https://dash.cloudflare.com/sign-up>), and some JavaScript or TypeScript experience would be a plus.
-
----
-
-Welcome to the Cloudflare Durable Objects Workshop! In this hands-on session, you'll build real-time applications using Cloudflare Workers and Durable Objects.
-
-## 🎯 Learning Objectives
-
-By the end of this workshop, you will understand:
-
-- **Cloudflare Durable Objects** fundamentals and use cases
-- **WebSocket management** in a serverless environment
-- **State persistence** and data storage with Durable Objects
-- **Real-time communication** patterns in distributed systems
-- **Room-based chat architecture** and user session management
-
-## 📋 Prerequisites
-
-### Required Knowledge
-
-- Basic JavaScript/TypeScript understanding
-- Familiarity with HTML and CSS
-- Basic understanding of WebSockets (helpful but not required)
-
-### Required Tools
-
-- **Node.js** (v20 or later)
-- **npm** or **yarn**
-- **Cloudflare account** (free tier is sufficient)
-- **Code editor** (VS Code recommended)
-- **Modern web browser**
-
-### Setup Before Workshop
-
-1. Install Wrangler CLI:
-
-   ```bash
-   npm install -g wrangler
-   ```
-
-2. Authenticate with Cloudflare:
-
-   ```bash
-   wrangler login
-   ```
-
-3. Clone this repository:
-
-   ```bash
-   git clone <repository-url>
-   cd hello-chat
-   ```
-
-4. Install dependencies:
-
-   ```bash
-   npm install
-   ```
-
 ## 🏗️ Architecture Overview
 
 Our chat application consists of:
 
-```
+```ascii
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │   Frontend      │    │  Cloudflare      │    │ Durable Object  │
 │   (HTML/JS)     │◄──►│  Worker          │◄──►│ (Chat Room)     │
@@ -87,11 +22,7 @@ Our chat application consists of:
 - **WebSockets**: Enable real-time bidirectional communication
 - **Rooms**: Isolated chat spaces with their own Durable Object instance
 
-## 🚀 Workshop Steps
-
-### Step 1: Understanding the Project Structure
-
-Let's explore the key files:
+## Project Structure
 
 ```ascii
 hello-chat/
@@ -275,37 +206,7 @@ Test message persistence:
 3. Observe message history loading
 4. Examine the storage keys in dev tools
 
-### Step 5: Advanced Features (Optional)
-
-If time permits, explore these advanced concepts:
-
-#### 5.1 Rate Limiting
-
-Add basic rate limiting to prevent spam:
-
-```typescript
-// In webSocketMessage method
-const lastMessage = await this.ctx.storage.get(`lastMsg_${name}`);
-const now = Date.now();
-if (lastMessage && now - lastMessage < 1000) {
- return; // Rate limited
-}
-await this.ctx.storage.put(`lastMsg_${name}`, now);
-```
-
-#### 5.2 Private Messages
-
-Extend the system to support private messaging between users.
-
-#### 5.3 Room Management
-
-Add features like:
-
-- Room creation/deletion
-- Room discovery
-- Password-protected rooms
-
-### Step 6: Deployment
+### Step 5: Deployment
 
 Deploy your chat application to Cloudflare:
 
