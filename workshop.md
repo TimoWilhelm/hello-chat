@@ -740,7 +740,7 @@ npm run deploy
 
 ---
 
-## 🎉 Congratulations!
+## 🎉 Congratulations
 
 You've successfully built a real-time chat application with:
 

@@ -39,12 +39,9 @@
 	</head>
 	<body>
 		<h1>Cloudflare Durable Objects Chat</h1>
-		<!-- Workshop Step 1: Connection Status Display -->
 		<div id="connectionStatus">Status: Disconnected</div>
-		<!-- Workshop Step 2: Message Display Area -->
 		<div id="messageContainer"></div>
 
-		<!-- Workshop Step 3: Message Input Form -->
 		<form onsubmit="sendMessage(event)" action="">
 			<input
 				type="text"
@@ -58,7 +55,6 @@
 		</form>
 
 		<script>
-			// ========== Workshop Step 1: Room Setup ==========
 			// Get current URL to check for room parameter
 			const url = new URL(window.location.href);
 			let room = url.searchParams.get('room');
@@ -71,7 +67,6 @@
 				history.replaceState(null, '', url.href);
 			}
 
-			// ========== Workshop Step 2: User Setup ==========
 			// Get username with validation
 			let username;
 			do {
@@ -88,7 +83,6 @@
 				username = "Anonymous";
 			}
 
-			// ========== Workshop Step 3: WebSocket Setup ==========
 			let ws; // WebSocket connection object
 			const messageContainer = document.getElementById('messageContainer');
 			const statusElement = document.getElementById('connectionStatus');
@@ -97,13 +91,11 @@
 			// Convert HTTP URL to WebSocket URL (http -> ws, https -> wss)
 			const wsUrl = location.origin.replace(/^http/, 'ws') + '/ws';
 
-			// ========== Workshop Step 4: Utility Functions ==========
 			function generateRandomId() {
 				// Generate random room ID using base36 encoding
 				return Math.random().toString(36).substring(2, 15);
 			}
 
-			// ========== Workshop Step 5: WebSocket Connection ==========
 			function connect() {
 				// Create WebSocket connection with room and username parameters
 				const connectionUrl = `${wsUrl}?name=${encodeURIComponent(username)}&room=${encodeURIComponent(room)}`;
@@ -154,7 +146,6 @@
 				};
 			}
 
-			// ========== Workshop Step 6: Send Message Function ==========
 			function sendMessage(evt) {
 				evt.preventDefault(); // Prevent form submission
 
@@ -196,7 +187,6 @@
 				}
 			}
 
-			// ========== Workshop Step 7: Disconnect Function ==========
 			function disconnect() {
 				if (ws && ws.readyState === WebSocket.OPEN) {
 					// Close WebSocket with normal closure code
@@ -210,7 +200,6 @@
 				}
 			}
 
-			// ========== Workshop Step 8: Message Display Function ==========
 			function addMessage(source, message, serverTimestamp = null) {
 				// Create message element
 				const messageElement = document.createElement('div');
@@ -239,7 +228,6 @@
 				}
 			}
 
-			// ========== Workshop Step 9: Initialize Connection ==========
 			// Start connection when page loads
 			sendButton.disabled = true; // Disable until connected
 			connect();
