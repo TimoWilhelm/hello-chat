@@ -129,8 +129,7 @@ export default {
 
 		// Get Durable Object instance for this room
 		// Each room gets its own isolated Durable Object with its own state
-		const chatRoom = env.Chat.idFromName(room);
-		const chat = env.Chat.get(chatRoom);
+		const chat = env.Chat.getByName(room);
 
 		// Forward request to the Durable Object
 		return chat.fetch(request);
