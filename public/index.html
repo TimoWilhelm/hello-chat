@@ -5,6 +5,11 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 		<title>Chat Demo</title>
 		<style>
+			body {
+				padding: 12px;
+				max-width: 800px;
+				margin: auto;
+			}
 			#messageContainer {
 				border: 1px solid #ccc;
 				padding: 10px;
@@ -36,25 +41,34 @@
 				border-radius: 4px;
 			}
 		</style>
+		<script type="importmap">
+			{
+				"imports": {
+					"qrcode": "https://esm.sh/qrcode"
+				}
+			}
+		</script>
 	</head>
 	<body>
 		<h1>Cloudflare Durable Objects Chat</h1>
 		<div id="connectionStatus">Status: Disconnected</div>
+
+		<details>
+			<summary>Show QR Code</summary>
+			<canvas id="qr-canvas"></canvas>
+		</details>
+
 		<div id="messageContainer"></div>
 
 		<form onsubmit="sendMessage(event)" action="">
-			<input
-				type="text"
-				id="messageInput"
-				placeholder="Type your message (max 200 chars)"
-				maxlength="200"
-				required
-			/>
+			<input type="text" id="messageInput" placeholder="Type your message (max 200 chars)" maxlength="200" required />
 			<button type="submit" id="sendButton">Send Message</button>
 			<button type="button" onclick="disconnect()">Disconnect</button>
 		</form>
 
-		<script>
+		<script type="module">
+			import * as QRCode from 'qrcode';
+
 			// Get current URL to check for room parameter
 			const url = new URL(window.location.href);
 			let room = url.searchParams.get('room');
@@ -67,20 +81,22 @@
 				history.replaceState(null, '', url.href);
 			}
 
+			QRCode.toCanvas(document.getElementById('qr-canvas'), window.location.href);
+
 			// Get username with validation
 			let username;
 			do {
 				username = prompt('Enter your username (3-20 characters):');
 				if (username === null) {
 					// User cancelled, use default
-					username = "Anonymous";
+					username = 'Anonymous';
 					break;
 				}
 				username = username.trim();
 			} while (username.length < 3 || username.length > 20);
 
 			if (!username) {
-				username = "Anonymous";
+				username = 'Anonymous';
 			}
 
 			let ws; // WebSocket connection object
@@ -205,9 +221,7 @@
 				const messageElement = document.createElement('div');
 
 				// Use server timestamp if available, otherwise use client timestamp
-				const timestamp = serverTimestamp
-					? new Date(serverTimestamp).toLocaleTimeString()
-					: new Date().toLocaleTimeString();
+				const timestamp = serverTimestamp ? new Date(serverTimestamp).toLocaleTimeString() : new Date().toLocaleTimeString();
 				messageElement.textContent = `[${timestamp}] ${source}: ${message}`;
 
 				// Style system messages differently
