@@ -60,7 +60,7 @@
 
 		<div id="messageContainer"></div>
 
-		<form onsubmit="sendMessage(event)" action="">
+		<form id="messageForm" action="">
 			<input type="text" id="messageInput" placeholder="Type your message (max 200 chars)" maxlength="200" required />
 			<button type="submit" id="sendButton">Send Message</button>
 			<button type="button" onclick="disconnect()">Disconnect</button>
@@ -241,6 +241,8 @@
 					messageContainer.removeChild(messageContainer.firstChild);
 				}
 			}
+
+			document.getElementById('messageForm').addEventListener('submit', sendMessage);
 
 			// Start connection when page loads
 			sendButton.disabled = true; // Disable until connected
