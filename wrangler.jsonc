@@ -14,19 +14,32 @@
 		"bindings": [
 			{
 				"name": "Chat",
-				"class_name": "Chat",
+				"class_name": "Chat"
 			}
 		]
 	},
 	"migrations": [
 		{
 			"tag": "v1",
-			"new_sqlite_classes": ["Chat"],
+			"new_sqlite_classes": ["Chat"]
 		}
 	],
 	"assets": {
 		"directory": "./public/",
 		"binding": "ASSETS",
 		"not_found_handling": "single-page-application"
-	}
+	},
+	"ai": {
+		"binding": "AI"
+	},
+	"ratelimits": [
+		{
+			"name": "RATELIMIT",
+			"namespace_id": "999",
+			"simple": {
+				"limit": 3,
+				"period": 10
+			}
+		}
+	]
 }

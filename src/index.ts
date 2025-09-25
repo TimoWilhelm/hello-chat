@@ -34,7 +34,19 @@ export class Chat extends DurableObject<Env> {
 			}
 
 			// Get user info from WebSocket attachment
-			const { name } = ws.deserializeAttachment();
+			const { name, id } = ws.deserializeAttachment();
+
+			const outcome = await this.env.RATELIMIT.limit({ key: id });
+
+			if (!outcome.success) {
+				ws.send(
+					JSON.stringify({
+						message: 'Rate limit exceeded. Please try again later.',
+						name: 'System',
+					})
+				);
+				return;
+			}
 
 			// Create message object with timestamp
 			const chatMessage: ChatMessage = {
@@ -48,6 +60,24 @@ export class Chat extends DurableObject<Env> {
 
 			// Broadcast to all OTHER connected clients (not sender)
 			this.broadcast(chatMessage, ws);
+
+			if (chatMessage.message.startsWith('emoji:')) {
+				const { response } = await this.env.AI.run('@cf/meta/llama-3-8b-instruct-awq', {
+					prompt: `Generate a single emoji character based on the following text ${message}`,
+				});
+
+				const emojiMessage: ChatMessage = {
+					message: response ?? '🤔',
+					name: 'AI',
+					timestamp: Date.now(),
+				};
+
+				// Store message in Durable Object storage
+				this.ctx.storage.kv.put(`msg_${chatMessage.timestamp}`, chatMessage);
+
+				// Broadcast to all OTHER connected clients (not sender)
+				this.broadcast(emojiMessage);
+			}
 		} catch (error) {
 			console.error('Error processing message:', error);
 		}
@@ -78,7 +108,7 @@ export class Chat extends DurableObject<Env> {
 		this.ctx.acceptWebSocket(pair[0]);
 
 		// Store user info with WebSocket
-		pair[0].serializeAttachment({ name });
+		pair[0].serializeAttachment({ name, id: crypto.randomUUID() });
 
 		// Notify others that someone joined
 		this.broadcast({ message: 'joined the chat', name }, pair[0]);
@@ -103,7 +133,7 @@ export class Chat extends DurableObject<Env> {
 	}
 
 	// Broadcast message to all connected clients except sender
-	private broadcast(data: ChatMessage, self: WebSocket) {
+	private broadcast(data: ChatMessage, self?: WebSocket) {
 		// Get all WebSocket connections for this Durable Object
 		for (const ws of this.ctx.getWebSockets()) {
 			// Don't send message back to sender
