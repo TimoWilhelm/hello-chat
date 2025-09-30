@@ -63,7 +63,6 @@
 		<form id="messageForm" action="">
 			<input type="text" id="messageInput" placeholder="Type your message (max 200 chars)" maxlength="200" required />
 			<button type="submit" id="sendButton">Send Message</button>
-			<button type="button" onclick="disconnect()">Disconnect</button>
 		</form>
 
 		<script type="module">
@@ -200,19 +199,6 @@
 				} catch (error) {
 					console.error('Error sending message:', error);
 					addMessage('Error', 'Failed to send message');
-				}
-			}
-
-			function disconnect() {
-				if (ws && ws.readyState === WebSocket.OPEN) {
-					// Close WebSocket with normal closure code
-					ws.close(1000, 'User initiated disconnect');
-					statusElement.textContent = 'Status: Disconnected';
-					statusElement.style.color = 'red';
-					sendButton.disabled = true;
-					addMessage('System', 'Manually disconnected from server');
-				} else {
-					addMessage('System', 'Already disconnected');
 				}
 			}
 
