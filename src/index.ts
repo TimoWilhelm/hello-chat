@@ -73,7 +73,7 @@ export class Chat extends DurableObject<Env> {
 				};
 
 				// Store message in Durable Object storage
-				this.ctx.storage.kv.put(`msg_${chatMessage.timestamp}`, chatMessage);
+				this.ctx.storage.kv.put(`msg_${chatMessage.timestamp}_ai`, emojiMessage);
 
 				// Broadcast to all OTHER connected clients (not sender)
 				this.broadcast(emojiMessage);
